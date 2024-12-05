@@ -1,67 +1,68 @@
 #include <Wire.h>
-#include <SPI.h>
-#include <Arducam.h>
 #include <ArduCAM.h>
-#include <MemoryFree.h>
-
-#define CS_PIN 7
+#include <SPI.h>
+#if !(defined OV2640_MINI_2MP)
+  #error Please select the hardware platform and camera module in the ../libraries/ArduCAM/memorysaver.h file
+#endif
+#define BMPIMAGEOFFSET 66
+const char bmp_header[BMPIMAGEOFFSET] PROGMEM =
+{
+  0x42, 0x4D, 0x36, 0x58, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x42, 0x00, 0x00, 0x00, 0x28, 0x00,
+  0x00, 0x00, 0x40, 0x01, 0x00, 0x00, 0xF0, 0x00, 0x00, 0x00, 0x01, 0x00, 0x10, 0x00, 0x03, 0x00,
+  0x00, 0x00, 0x00, 0x58, 0x02, 0x00, 0xC4, 0x0E, 0x00, 0x00, 0xC4, 0x0E, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF8, 0x00, 0x00, 0xE0, 0x07, 0x00, 0x00, 0x1F, 0x00,
+  0x00, 0x00
+};
 
 int pin = 12;
 int led = 13;
 int motion = 0;
+const int CS = 7;
+bool is_header = false;
+int mode = 0;
+uint8_t start_capture = 0;
+#if defined (OV2640_MINI_2MP)
+  ArduCAM myCAM( OV2640, CS );
+#else
+  ArduCAM myCAM( OV5642, CS );
+#endif
+uint8_t read_fifo_burst(ArduCAM myCAM);
 
 Arducam Mini;
 byte pic_buf[256]; 
 
 void setup() {
   Serial.begin(115200);
-  
   pinMode(pin, INPUT);
   pinMode(led, OUTPUT);
-
   SPI.begin();
-  
-  Arducam.begin(CS_PIN);
-  
+  Arducam.begin(CS);
   if (!Arducam.init()) {
     Serial.println("Camera init failed!");
     while (1);
   }
-  
   Serial.println("Camera initialized.");
 }
-
 void loop() {
-
   int pir_state = digitalRead(PIR_SENSOR_PIN);
-
-    motion = digitalRead(pin);
-    if(motion == HIGH){
+   motion = digitalRead(pin);
+  if(motion == HIGH){
     digitalWrite(led, HIGH);
     Serial.print("Motion detected");
-    
+  }
     Arducam.flush_fifo();
     Arducam.start_capture();
-    
     while (!Arducam.is_capture_done()) {
       delay(10); 
     }
-    
     Serial.println("Picture captured.");
-    
     Arducam.read_fifo(pic_buf, sizeof(pic_buf));
-    
-
     delay(1000); 
   } else{
     digitalWrite(led, LOW);
     Serial.print("Motion stopped");
   }
-  }
-
-  delay(100); 
 }
-
   else{
     digitalWrite(led, LOW);
     Serial.print("Motion stopped");
