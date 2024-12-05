@@ -34,7 +34,8 @@ void setup() {
 void loop() {
 
   int pir_state = digitalRead(PIR_SENSOR_PIN);
-  
+
+    motion = digitalRead(pin);
     if(motion == HIGH){
     digitalWrite(led, HIGH);
     Serial.print("Motion detected");
